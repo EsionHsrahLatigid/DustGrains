@@ -127,13 +127,17 @@ if(DUSTGRAINS_BUILD_PLUGIN)
         add_test(NAME dustgrains_plugin_bridge_tests COMMAND dustgrains_plugin_bridge_tests)
     endif()
 
-    set(DUSTGRAINS_BUNDLE_TARGETS
+    set(dustgrains_release_bundle_targets
         dustgrains_standalone_plugin
         dustgrains_vst3_plugin)
     if(APPLE)
-        list(APPEND DUSTGRAINS_BUNDLE_TARGETS dustgrains_au_plugin)
+        list(APPEND dustgrains_release_bundle_targets dustgrains_au_plugin)
     endif()
-    add_custom_target(dustgrains_bundles DEPENDS ${DUSTGRAINS_BUNDLE_TARGETS})
+
+    add_custom_target(dustgrains_release_bundles
+        DEPENDS ${dustgrains_release_bundle_targets})
+    add_custom_target(dustgrains_bundles
+        DEPENDS dustgrains_release_bundles)
 
     if(APPLE AND DUSTGRAINS_ADHOC_SIGN)
         find_program(DUSTGRAINS_CODESIGN_EXECUTABLE codesign REQUIRED)

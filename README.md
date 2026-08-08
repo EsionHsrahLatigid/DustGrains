@@ -40,6 +40,13 @@ cmake --build --preset plugin-release --parallel
 ctest --preset plugin-release
 ```
 
+Release bundles are generated under `build/plugin-release` by YUP's plugin targets:
+
+- `dustgrains_release_bundles`
+- `dustgrains_standalone_plugin`
+- `dustgrains_vst3_plugin`
+- `dustgrains_au_plugin` on Apple platforms
+
 Expected macOS artifacts:
 
 - `build/plugin-release/dustgrains_standalone_plugin.app`
@@ -50,7 +57,16 @@ Windows CI discovers the generated Release standalone executable and VST3 bundle
 
 ## Continuous integration and releases
 
-GitHub Actions tests and packages macOS 26 arm64 and Windows 2025 x64 builds. It uploads `DustGrains-latest-macos-arm64.zip` and `DustGrains-latest-windows-x64.zip`; a `v*` tag creates or updates one GitHub Release with both versioned ZIPs.
+`.github/workflows/ci.yml` is the required CI entrypoint for pushes to `main`, pull requests, and manual runs. A lightweight Linux classifier always runs. Changes limited to `README.md`, `DESIGN.md`, `LICENSE`, `docs/**`, or `.github/ISSUE_TEMPLATE/**` skip the heavy jobs; every other change runs Debug tests and Release bundle builds on macOS arm64 and Windows x64. Manual dispatches default to forcing both heavy jobs.
+
+Successful heavy runs upload two immutable, 14-day artifacts:
+
+- `DustGrains-latest-macos-arm64`, containing `DustGrains-latest-macos-arm64.zip` and `SHA256SUMS.txt`
+- `DustGrains-latest-windows-x64`, containing `DustGrains-latest-windows-x64.zip` and `SHA256SUMS.txt`
+
+`.github/workflows/release.yml` is the only `v*` tag workflow. It performs no compilation. The Ubuntu release job resolves lightweight or annotated tags to a commit, requires the tag version to match the CMake project version, requires one successful `CI` push run on `main` for that exact SHA, downloads exactly the two expected artifacts, verifies their SHA-256 manifests and ZIP integrity, then publishes versioned assets such as `DustGrains-0.2.0-macos-arm64.zip` and `DustGrains-0.2.0-windows-x64.zip`. Publication uses a draft release whose asset list is sanitized and rechecked to contain exactly those two ZIPs. A missing, expired, ambiguous, or mismatched provenance chain fails closed.
+
+Release operator sequence: merge or push the version commit to `main`, wait for both platform jobs and `CI Summary` to pass, then create and push the version tag. GitHub CLI 2.x or newer is required by the release runner. Never move or reuse a published tag; correct the source and use the next patch version instead.
 
 ## Parameters
 
