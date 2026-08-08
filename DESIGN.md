@@ -23,11 +23,16 @@
 - MIDI note-on retriggers the monophonic texture and alters deterministic scheduler state.
 - MIDI note-off releases the texture when it matches the active note.
 - The editor is a direct parameter grid with host-owned sliders and explicit value labels.
+- DustGrains adds a built-in momentary Trigger for standalone auditioning; holding Space while the editor has keyboard focus drives the same gate.
+- UI trigger state is written to processor-owned atomics as desired-gate state plus monotonic press/release edge counters. The audio thread consumes those edges into its own latch before rendering samples, one edge per sample, so rapid UI pulses are not collapsed by process-block timing. External MIDI continues through the MIDI buffer path.
+- If MIDI note-on takes over while the standalone gate is held, the matching MIDI note-off restarts the standalone gate. Processor reset clears DSP state but does not clear a still-held UI gate request.
+- Output activity is published by the audio thread as an atomic block peak and polled by the UI timer for a visible meter.
 
 ## Visual language
 
 - Near-black field with a sharp DustGrains accent line.
 - Compact labels and values; no decorative animation.
+- Trigger and output meter are utility controls, not performance animations.
 - Warning copy stays terse because the product can generate dense bursts.
 
 ## Build surfaces

@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.31)
 
 if(APPLE)
-    project(DustGrains VERSION 0.1.1 LANGUAGES C CXX OBJC OBJCXX)
+    project(DustGrains VERSION 0.2.0 LANGUAGES C CXX OBJC OBJCXX)
 else()
-    project(DustGrains VERSION 0.1.1 LANGUAGES C CXX)
+    project(DustGrains VERSION 0.2.0 LANGUAGES C CXX)
 endif()
 
 option(DUSTGRAINS_BUILD_PLUGIN "Build the YUP Standalone/VST3/AU targets" ON)
@@ -106,6 +106,26 @@ if(DUSTGRAINS_BUILD_PLUGIN)
     target_include_directories(dustgrains_shared INTERFACE
         "${CMAKE_CURRENT_LIST_DIR}/include"
         "${CMAKE_CURRENT_LIST_DIR}/source")
+
+    if(DUSTGRAINS_BUILD_TESTS)
+        add_executable(dustgrains_plugin_bridge_tests
+            tests/DustGrainsPluginBridgeTests.cpp
+            source/violent/plugins/DustGrainsPlugin.cpp
+            source/violent/plugins/DustGrainsPlugin.h
+            source/violent/ProductState.h)
+        target_compile_definitions(dustgrains_plugin_bridge_tests PRIVATE DUSTGRAINS_HEADLESS_PLUGIN_TEST=1)
+        target_link_libraries(dustgrains_plugin_bridge_tests PRIVATE dustgrains_engine yup::yup_audio_processors)
+        target_include_directories(dustgrains_plugin_bridge_tests PRIVATE
+            "${CMAKE_CURRENT_LIST_DIR}/include"
+            "${CMAKE_CURRENT_LIST_DIR}/source")
+        target_compile_features(dustgrains_plugin_bridge_tests PRIVATE cxx_std_20)
+        if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+            target_compile_options(dustgrains_plugin_bridge_tests PRIVATE -Wall -Wextra -Wpedantic -UNDEBUG)
+        elseif(MSVC)
+            target_compile_options(dustgrains_plugin_bridge_tests PRIVATE /UNDEBUG)
+        endif()
+        add_test(NAME dustgrains_plugin_bridge_tests COMMAND dustgrains_plugin_bridge_tests)
+    endif()
 
     set(DUSTGRAINS_BUNDLE_TARGETS
         dustgrains_standalone_plugin

@@ -1,10 +1,15 @@
 #include "violent/plugins/DustGrainsPlugin.h"
 
-#include "violent/ParameterGridEditor.h"
 #include "violent/ProductState.h"
+
+#ifndef DUSTGRAINS_HEADLESS_PLUGIN_TEST
+#include "violent/ParameterGridEditor.h"
+#endif
 
 #include <algorithm>
 #include <array>
+#include <bit>
+#include <cmath>
 
 namespace violent::plugin
 {
@@ -13,6 +18,7 @@ namespace
 constexpr std::array<char, 4> stateMagic {{ 'D', 'G', 'R', '1' }};
 constexpr int stateVersion = 1;
 constexpr int controlPeriod = 16;
+constexpr int standaloneTriggerNote = 60;
 
 yup::NormalisableRange<float> makeDensityRange()
 {
@@ -129,8 +135,11 @@ void DustGrainsPlugin::prepareToPlay (const yup::AudioSpec& spec)
         smoothedValues[i] = parameters[i]->getValue();
     }
     applyEngineParameters();
-    activeNote = -1;
+    activeMidiNote = -1;
+    standaloneGateHeld = false;
+    standaloneNoteActive = false;
     controlCountdown = 0;
+    publishOutputPeak (0.0f);
 }
 
 void DustGrainsPlugin::releaseResources()
@@ -149,24 +158,30 @@ void DustGrainsPlugin::processBlock (yup::AudioProcessContext<float>& context)
     const auto numChannels = audio.getNumChannels();
     auto* left = numChannels > 0 ? audio.getWritePointer (0) : nullptr;
     auto* right = numChannels > 1 ? audio.getWritePointer (1) : nullptr;
+    float blockPeak = 0.0f;
 
     for (int sample = 0; sample < numSamples; ++sample)
     {
+        consumeStandaloneTriggerEdges();
+
         while (midi != midiEnd && (*midi).samplePosition <= sample)
         {
             const auto& message = (*midi).getMessage();
             if (message.isNoteOn())
             {
-                activeNote = std::clamp (message.getNoteNumber(), 0, 127);
-                engine.noteOn (activeNote, std::clamp (message.getFloatVelocity(), 0.0f, 1.0f));
+                activeMidiNote = std::clamp (message.getNoteNumber(), 0, 127);
+                standaloneNoteActive = false;
+                engine.noteOn (activeMidiNote, std::clamp (message.getFloatVelocity(), 0.0f, 1.0f));
             }
             else if (message.isNoteOff())
             {
                 const auto note = std::clamp (message.getNoteNumber(), 0, 127);
-                if (note == activeNote)
+                if (note == activeMidiNote)
                 {
                     engine.noteOff (note);
-                    activeNote = -1;
+                    activeMidiNote = -1;
+                    if (standaloneGateHeld)
+                        startStandaloneTrigger();
                 }
             }
             ++midi;
@@ -181,6 +196,7 @@ void DustGrainsPlugin::processBlock (yup::AudioProcessContext<float>& context)
         --controlCountdown;
 
         const auto frame = engine.processSample();
+        blockPeak = std::max (blockPeak, std::max (std::fabs (frame.left), std::fabs (frame.right)));
         if (left != nullptr)
             left[sample] = frame.left;
         if (right != nullptr)
@@ -190,13 +206,17 @@ void DustGrainsPlugin::processBlock (yup::AudioProcessContext<float>& context)
     }
 
     context.midi.clear();
+    publishOutputPeak (blockPeak);
 }
 
 void DustGrainsPlugin::flush()
 {
     engine.reset (1u);
-    activeNote = -1;
+    activeMidiNote = -1;
+    standaloneGateHeld = false;
+    standaloneNoteActive = false;
     controlCountdown = 0;
+    publishOutputPeak (0.0f);
 }
 
 int DustGrainsPlugin::getNumVoices() const
@@ -252,16 +272,54 @@ yup::Result DustGrainsPlugin::saveStateIntoMemory (yup::MemoryBlock& data)
 
 bool DustGrainsPlugin::hasEditor() const
 {
+#ifdef DUSTGRAINS_HEADLESS_PLUGIN_TEST
+    return false;
+#else
     return true;
+#endif
 }
 
 yup::AudioProcessorEditor* DustGrainsPlugin::createEditor()
 {
+#ifdef DUSTGRAINS_HEADLESS_PLUGIN_TEST
+    return nullptr;
+#else
     return new ParameterGridEditor (*this,
                                     "DustGrains",
                                     "Dense granular bursts can become loud. Start with monitoring low and raise deliberately.",
                                     0xffe4cc33u);
+#endif
 }
+
+void DustGrainsPlugin::setStandaloneTriggerGate (bool shouldBeOpen) noexcept
+{
+    const auto newValue = shouldBeOpen ? 1 : 0;
+    const auto oldValue = desiredStandaloneGate.exchange (newValue, std::memory_order_acq_rel);
+    if (oldValue == newValue)
+        return;
+
+    if (shouldBeOpen)
+        standalonePressEdges.fetch_add (1u, std::memory_order_release);
+    else
+        standaloneReleaseEdges.fetch_add (1u, std::memory_order_release);
+}
+
+bool DustGrainsPlugin::getStandaloneTriggerGate() const noexcept
+{
+    return desiredStandaloneGate.load (std::memory_order_acquire) != 0;
+}
+
+float DustGrainsPlugin::getOutputPeak() const noexcept
+{
+    return std::bit_cast<float> (outputPeakBits.load (std::memory_order_acquire));
+}
+
+#ifdef DUSTGRAINS_HEADLESS_PLUGIN_TEST
+std::uint64_t DustGrainsPlugin::getTriggeredGrainCountForTesting() const noexcept
+{
+    return engine.getTriggeredGrainCount();
+}
+#endif
 
 void DustGrainsPlugin::advanceParameters (int samplePosition) noexcept
 {
@@ -283,6 +341,68 @@ void DustGrainsPlugin::applyEngineParameters() noexcept
     values.stereoSpread = smoothedValues[stereoSpread];
     values.outputGain = violent::decibelsToGain (smoothedValues[output]);
     engine.setParameters (values);
+}
+
+void DustGrainsPlugin::consumeStandaloneTriggerEdges() noexcept
+{
+    const auto publishedPresses = standalonePressEdges.load (std::memory_order_acquire);
+    const auto publishedReleases = standaloneReleaseEdges.load (std::memory_order_acquire);
+
+    if (consumedStandalonePressEdges != publishedPresses
+        || consumedStandaloneReleaseEdges != publishedReleases)
+    {
+        if (standaloneGateHeld)
+        {
+            if (consumedStandaloneReleaseEdges != publishedReleases)
+            {
+                ++consumedStandaloneReleaseEdges;
+                standaloneGateHeld = false;
+                releaseStandaloneTrigger();
+            }
+        }
+        else
+        {
+            if (consumedStandalonePressEdges != publishedPresses)
+            {
+                ++consumedStandalonePressEdges;
+                standaloneGateHeld = true;
+                startStandaloneTrigger();
+            }
+        }
+    }
+
+    if (! standaloneGateHeld && desiredStandaloneGate.load (std::memory_order_acquire) != 0)
+    {
+        standaloneGateHeld = true;
+        startStandaloneTrigger();
+    }
+}
+
+void DustGrainsPlugin::startStandaloneTrigger() noexcept
+{
+    if (activeMidiNote >= 0)
+    {
+        standaloneNoteActive = false;
+        return;
+    }
+
+    engine.noteOn (standaloneTriggerNote, 1.0f);
+    standaloneNoteActive = true;
+}
+
+void DustGrainsPlugin::releaseStandaloneTrigger() noexcept
+{
+    if (! standaloneNoteActive)
+        return;
+
+    engine.noteOff (standaloneTriggerNote);
+    standaloneNoteActive = false;
+}
+
+void DustGrainsPlugin::publishOutputPeak (float peak) noexcept
+{
+    const auto clampedPeak = std::isfinite (peak) ? std::clamp (peak, 0.0f, 1.0f) : 0.0f;
+    outputPeakBits.store (std::bit_cast<std::uint32_t> (clampedPeak), std::memory_order_release);
 }
 
 } // namespace violent::plugin

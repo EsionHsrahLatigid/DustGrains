@@ -64,6 +64,14 @@ GitHub Actions tests and packages macOS 26 arm64 and Windows 2025 x64 builds. It
 | Stereo Spread | Pan spread width |
 | Output | Final gain before the bounded safety stage |
 
+## Standalone controls
+
+The editor includes a momentary `Trigger` control for built-in auditioning. Hold the button or hold Space while the editor has keyboard focus to open the gate; release it to stop the standalone trigger. External MIDI note-on/note-off remains supported through the existing MIDI input path.
+
+The trigger bridge uses processor-owned atomics for the desired gate plus monotonic press/release edges. The audio thread consumes those edges as a latch, so a quick press/release between process blocks still triggers and releases deterministically without locks or allocation. If external MIDI temporarily takes over while the standalone gate is held, DustGrains returns to the held standalone gate after the matching MIDI note-off.
+
+The output activity meter is UI-polled from a processor-owned atomic peak value, so it does not add locks or allocation to the realtime render path.
+
 ## Verification covered
 
-The DSP regression test checks silence before trigger, deterministic rendering for the same seed, density-controlled event counts, release-to-silence behavior, finite bounded output under extreme/non-finite parameters, velocity-zero behavior, fixed voice-pool limits, and block/sample render equivalence.
+The DSP regression test checks silence before trigger, deterministic rendering for the same seed with nonzero emitted amplitude, density-controlled event counts, release-to-silence behavior, finite bounded output under extreme/non-finite parameters, velocity-zero behavior, fixed voice-pool limits, and block/sample render equivalence. The plugin bridge test drives the synthetic standalone trigger through the processor wrapper and asserts that it produces a nonzero waveform and visible output peak, preserves rapid UI pulses, hands back from MIDI to a held standalone gate, and restarts a held gate after processor reset.

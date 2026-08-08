@@ -41,6 +41,7 @@
       "configurePreset": "plugin-release",
       "targets": [
         "dustgrains_engine_tests",
+        "dustgrains_plugin_bridge_tests",
         "dustgrains_bundles"
       ]
     }

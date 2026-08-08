@@ -36,6 +36,7 @@ jobs:
         run: >
           cmake --build build/plugin-release --config Release --parallel
           --target dustgrains_engine_tests
+          dustgrains_plugin_bridge_tests
           dustgrains_standalone_plugin
           dustgrains_vst3_plugin
           dustgrains_au_plugin
@@ -105,6 +106,7 @@ jobs:
         run: >
           cmake --build build/windows-release --config Release --parallel
           --target dustgrains_engine_tests
+          dustgrains_plugin_bridge_tests
           dustgrains_standalone_plugin
           dustgrains_vst3_plugin
 

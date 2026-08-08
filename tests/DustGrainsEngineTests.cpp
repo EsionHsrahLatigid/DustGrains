@@ -27,6 +27,14 @@ std::vector<float> render (std::uint32_t seed, DustGrainsParameters parameters, 
     return result;
 }
 
+float peakAbs (const std::vector<float>& samples)
+{
+    float peak = 0.0f;
+    for (const auto sample : samples)
+        peak = std::max (peak, std::fabs (sample));
+    return peak;
+}
+
 void testSilentBeforeTrigger()
 {
     DustGrainsEngine engine;
@@ -43,7 +51,9 @@ void testDeterministicForSameSeed()
 {
     DustGrainsParameters parameters;
     parameters.densityHz = 240.0f;
-    assert (render (1234u, parameters, 8192) == render (1234u, parameters, 8192));
+    const auto first = render (1234u, parameters, 8192);
+    assert (first == render (1234u, parameters, 8192));
+    assert (peakAbs (first) > 1.0e-5f);
 }
 
 void testDensityControlsTriggerCount()
