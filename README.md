@@ -40,7 +40,7 @@ cmake --build --preset plugin-release --parallel
 ctest --preset plugin-release
 ```
 
-Release bundles are generated under `build/plugin-release` by YUP's plugin targets:
+Release bundles are staged under the stable `artifacts/plugin-release/<platform-arch>/` tree. `build/` is CMake's internal workspace:
 
 - `dustgrains_release_bundles`
 - `dustgrains_standalone_plugin`
@@ -49,9 +49,11 @@ Release bundles are generated under `build/plugin-release` by YUP's plugin targe
 
 Expected macOS artifacts:
 
-- `build/plugin-release/dustgrains_standalone_plugin.app`
-- `build/plugin-release/VST3/Release/dustgrains_vst3_plugin.vst3`
-- `build/plugin-release/dustgrains_au_plugin.component`
+- `artifacts/plugin-release/macos-arm64/standalone/dustgrains_standalone_plugin.app`
+- `artifacts/plugin-release/macos-arm64/vst3/dustgrains_vst3_plugin.vst3`
+- `artifacts/plugin-release/macos-arm64/au/dustgrains_au_plugin.component`
+
+Windows uses `artifacts/plugin-release/windows-x64/` with `standalone/` and `vst3/` directories.
 
 Windows CI discovers the generated Release standalone executable and VST3 bundle recursively before packaging them.
 

@@ -42,7 +42,7 @@
       "targets": [
         "dustgrains_engine_tests",
         "dustgrains_plugin_bridge_tests",
-        "dustgrains_bundles"
+        "ehl_stage_products"
       ]
     }
   ],

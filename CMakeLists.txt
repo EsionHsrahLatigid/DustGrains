@@ -139,6 +139,15 @@ if(DUSTGRAINS_BUILD_PLUGIN)
     add_custom_target(dustgrains_bundles
         DEPENDS dustgrains_release_bundles)
 
+    include(cmake/EhlYupArtifactLayout.cmake)
+    ehl_yup_add_artifact_target(
+        TARGET ehl_stage_products
+        PRODUCT DustGrains
+        SLUG dustgrains
+        STANDALONE_TARGET dustgrains_standalone_plugin
+        VST3_TARGET dustgrains_vst3_plugin
+        AU_TARGET dustgrains_au_plugin)
+
     if(APPLE AND DUSTGRAINS_ADHOC_SIGN)
         find_program(DUSTGRAINS_CODESIGN_EXECUTABLE codesign REQUIRED)
         add_custom_command(TARGET dustgrains_vst3_plugin POST_BUILD
