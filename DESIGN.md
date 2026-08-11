@@ -4,7 +4,7 @@
 
 - Status: Active
 - Primary product surfaces: macOS Standalone, VST3 editor, AUv2 editor, Windows Standalone, Windows VST3
-- Product identity: `audio.2bit.dustgrains`, `audio.2bit.DustGrains`, AU subtype `DsGr`
+- Product identity: `jp.ehl.dustgrains`, `jp.ehl.dustgrains`, AU subtype `DsGr`
 
 ## Product goals
 

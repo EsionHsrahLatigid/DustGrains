@@ -6,8 +6,8 @@ The project builds a standalone app, VST3, and AUv2 synth on macOS. On Windows i
 
 ## Identity
 
-- App ID: `audio.2bit.dustgrains`
-- Plugin ID: `audio.2bit.DustGrains`
+- App ID: `jp.ehl.dustgrains`
+- Plugin ID: `jp.ehl.dustgrains`
 - AU subtype: `DsGr`
 - Manufacturer: `2Bit`
 - Product role: synth
