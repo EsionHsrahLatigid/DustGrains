@@ -287,7 +287,7 @@ yup::AudioProcessorEditor* DustGrainsPlugin::createEditor()
     return new ParameterGridEditor (*this,
                                     "DustGrains",
                                     "Dense granular bursts can become loud. Start with monitoring low and raise deliberately.",
-                                    0xffe4cc33u);
+                                    0xfff2f2f0u);
 #endif
 }
 

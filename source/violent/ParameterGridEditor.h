@@ -7,6 +7,11 @@
 #include <memory>
 #include <vector>
 
+namespace ehl::ui
+{
+class StripMeter;
+}
+
 namespace violent::plugin
 {
 
@@ -31,8 +36,6 @@ public:
     void focusLost() override;
 
 private:
-    class OutputMeter;
-    class EditorSlider;
     class TriggerButton;
 
     void timerCallback() override;
@@ -43,7 +46,6 @@ private:
 
     yup::String title;
     yup::String warning;
-    std::uint32_t accentColor = 0xffe4cc33u;
     yup::AudioProcessor* processor = nullptr;
     bool mouseGateHeld = false;
     bool spaceGateActive = false;
@@ -52,7 +54,7 @@ private:
     std::unique_ptr<yup::Label> warningLabel;
     std::unique_ptr<TriggerButton> triggerButton;
     std::unique_ptr<yup::Label> meterLabel;
-    std::unique_ptr<OutputMeter> outputMeter;
+    std::unique_ptr<ehl::ui::StripMeter> outputMeter;
     std::vector<yup::AudioParameter::Ptr> parameters;
     std::vector<std::unique_ptr<yup::Label>> labels;
     std::vector<std::unique_ptr<yup::Slider>> sliders;
