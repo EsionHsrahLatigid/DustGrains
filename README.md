@@ -61,7 +61,7 @@ Expected macOS artifacts:
 - `artifacts/plugin-release/macos-arm64/vst3/dustgrains_vst3_plugin.vst3`
 - `artifacts/plugin-release/macos-arm64/au/dustgrains_au_plugin.component`
 
-Windows uses `artifacts/plugin-release/windows-x64/` with `standalone/` and `vst3/` directories.
+Windows uses `artifacts/plugin-release/windows-x64/` with `standalone/` and `vst3/` directories. On local macOS non-CI `plugin-release` builds, the staged VST3 and AU bundles are also physically copied to `~/Library/Audio/Plug-Ins/VST3` and `~/Library/Audio/Plug-Ins/Components`; Standalone stays in `artifacts/`. Configure with `-DEHL_COPY_PLUGIN_AFTER_BUILD=OFF` to disable the local plugin copy.
 
 Windows CI discovers the generated Release standalone executable and VST3 bundle recursively before packaging them.
 
