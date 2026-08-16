@@ -29,6 +29,14 @@
         "DUSTGRAINS_BUILD_PLUGIN": "ON",
         "DUSTGRAINS_BUILD_TESTS": "ON"
       }
+    },
+    {
+      "name": "plugin-install",
+      "displayName": "Local plugin install (Release)",
+      "inherits": "plugin-release",
+      "cacheVariables": {
+        "EHL_COPY_PLUGIN_AFTER_BUILD": "ON"
+      }
     }
   ],
   "buildPresets": [
@@ -44,6 +52,11 @@
         "dustgrains_plugin_bridge_tests",
         "ehl_stage_products"
       ]
+    },
+    {
+      "name": "plugin-install",
+      "configurePreset": "plugin-install",
+      "inherits": "plugin-release"
     }
   ],
   "testPresets": [
@@ -60,6 +73,11 @@
       "output": {
         "outputOnFailure": true
       }
+    },
+    {
+      "name": "plugin-install",
+      "configurePreset": "plugin-install",
+      "inherits": "plugin-release"
     }
   ]
 }
