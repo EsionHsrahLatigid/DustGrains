@@ -22,7 +22,7 @@ The project builds a standalone app, VST3, and AUv2 synth on macOS. On Windows i
 - A local YUP checkout at `../yup`, or network access for the pinned fallback checkout
 - The shared `external/yup-ehl-design-module` submodule
 
-YUP is pinned to commit `9a1c9bc699b6a714f6f52486462d98a140c8bf95` when the adjacent checkout is unavailable.
+YUP is pinned to commit `fa83e8c55664727ae5a53b94a3f6b5b336ce9e57` when the adjacent checkout is unavailable.
 
 ## Build and test
 
